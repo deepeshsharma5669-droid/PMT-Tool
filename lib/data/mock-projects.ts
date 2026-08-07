@@ -1,0 +1,44 @@
+export type Project = {
+  id: number
+  projectName: string
+  clientName: string
+  clientPoc: string
+  deliverables: number
+  contentFormat: string
+  startDate: string
+  endDate: string | null
+  status: string
+  manager: string[]
+  assignee: string[]
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent'
+  timeScale: 'On-Time' | 'Delayed' | null
+  completionPercent: number
+}
+
+export const projects: Project[] = [
+  { id: 1, projectName: 'Ticker Board Creation a4', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Anjali Nair', deliverables: 1, contentFormat: 'Creative', startDate: '2024-06-14', endDate: null, status: 'On Hold', manager: ['Shruti Gawade', 'Shraddha Batawale'], assignee: [], priority: 'Low', timeScale: 'Delayed', completionPercent: 36.6 },
+  { id: 2, projectName: 'SIP Calculator', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Rhea Sabherwal', deliverables: 1, contentFormat: 'Tool', startDate: '2024-10-30', endDate: '2024-10-30', status: 'Delivered', manager: ['Shruti Gawade', 'Shraddha Batawale'], assignee: [], priority: 'Low', timeScale: 'On-Time', completionPercent: 36.6 },
+  { id: 3, projectName: 'IPru Business Cycle Fund EFO Campaign', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Rhea Sabherwal', deliverables: 12, contentFormat: 'Campaign', startDate: '2025-08-22', endDate: '2025-09-18', status: 'Raised Invoice', manager: ['Shruti Gawade', 'Shraddha Batawale', 'Jinkal Gala'], assignee: ['Vanshika Shah', 'Shreshth Sawant'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 37.0 },
+  { id: 4, projectName: 'IPru Distributor Engagement Campaign', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Anjali Nair', deliverables: 24, contentFormat: 'Campaign', startDate: '2025-10-03', endDate: '2025-11-15', status: 'New', manager: ['Vishal Pund', 'Sakshi Agarwal', 'Kaushal Shah'], assignee: ['Vanshika Shah', 'Jinkal Gala'], priority: 'High', timeScale: 'Delayed', completionPercent: 35.8 },
+  { id: 5, projectName: 'IPru_BCF Anniversary Campaign', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Anjali Nair', deliverables: 10, contentFormat: 'Campaign', startDate: '2025-12-02', endDate: '2026-01-15', status: 'Ready for Invoice', manager: ['Vishal Pund', 'Sakshi Agarwal'], assignee: ['Jinkal Gala', 'Nikhil Joshi'], priority: 'High', timeScale: 'Delayed', completionPercent: 36.3 },
+  { id: 6, projectName: 'IPru Board Meeting Video', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Sunaina Kaul', deliverables: 1, contentFormat: 'AV', startDate: '2026-01-16', endDate: '2026-01-27', status: 'Under Animation', manager: ['Vishal Pund', 'Jinkal Gala'], assignee: ['Vanshika Shah', 'Bhavya Darji'], priority: 'High', timeScale: 'Delayed', completionPercent: 36.6 },
+  { id: 7, projectName: 'IPru Diversified Equity All Cap Active FOF NFO', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Anjali Nair', deliverables: 21, contentFormat: 'Campaign', startDate: '2026-02-09', endDate: '2026-03-31', status: 'Ready for Invoice', manager: ['Vishal Pund', 'Kaushal Shah'], assignee: ['Bhavya Darji', 'Shreshth Sawant'], priority: 'High', timeScale: 'Delayed', completionPercent: 35.6 },
+  { id: 8, projectName: 'IPru Nifty Smallcap 250 ETF - NFO', clientName: 'ICICI Prudential Mutual Fund', clientPoc: 'Sunaina Kaul', deliverables: 20, contentFormat: 'Campaign', startDate: '2026-05-21', endDate: '2026-06-19', status: 'Ongoing', manager: ['Sakshi Agarwal', 'Kaushal Shah'], assignee: [], priority: 'High', timeScale: 'On-Time', completionPercent: 35.7 },
+
+  { id: 9, projectName: 'BAF Print Performance AD', clientName: 'Franklin Templeton', clientPoc: 'Durga Rijhwani', deliverables: 3, contentFormat: 'Print', startDate: '2025-02-13', endDate: '2025-02-13', status: 'Dropped', manager: ['Shruti Gawade'], assignee: [], priority: 'Low', timeScale: 'Delayed', completionPercent: 36.5 },
+  { id: 10, projectName: 'FT_Gift City_AV', clientName: 'Franklin Templeton', clientPoc: 'Shiraz Rustomji', deliverables: 1, contentFormat: 'AV', startDate: '2025-09-30', endDate: '2025-09-30', status: 'Raised Invoice', manager: ['Shruti Gawade', 'Kaushal Shah'], assignee: ['Kaushal Shah', 'Abhishek Gore'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 36.6 },
+  { id: 11, projectName: 'FT_Multi Factor NFO_Campaign', clientName: 'Franklin Templeton', clientPoc: 'Durga Rijhwani', deliverables: 21, contentFormat: 'Campaign', startDate: '2025-10-14', endDate: '2025-10-14', status: 'Raised Invoice', manager: ['Jinkal Gala', 'Shreshth Sawant'], assignee: ['Nikhil Joshi', 'Jinkal Gala'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 35.6 },
+  { id: 12, projectName: 'FT_Emailer Campaign for Distributors', clientName: 'Franklin Templeton', clientPoc: 'Durga Rijhwani', deliverables: 4, contentFormat: 'Email', startDate: '2026-01-19', endDate: '2026-05-30', status: 'Ongoing', manager: ['Sakshi Agarwal', 'Jinkal Gala'], assignee: ['Shraddha Batawale', 'Bhavya Darji'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 36.4 },
+  { id: 13, projectName: 'FT Sapphire Equity Long Short SIF', clientName: 'Franklin Templeton', clientPoc: 'Durga Rijhwani', deliverables: 19, contentFormat: 'Campaign', startDate: '2026-02-25', endDate: '2026-04-30', status: 'Raised Invoice', manager: ['Vishal Pund', 'Sakshi Agarwal'], assignee: ['Vanshika Shah', 'Jinkal Gala'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 35.7 },
+  { id: 14, projectName: 'FT_SIP STP SWP Campaign', clientName: 'Franklin Templeton', clientPoc: 'Durga Rijhwani', deliverables: 7, contentFormat: 'Campaign', startDate: '2026-05-20', endDate: '2026-06-30', status: 'Ongoing', manager: ['Sakshi Agarwal', 'Kaushal Shah'], assignee: [], priority: 'Medium', timeScale: 'On-Time', completionPercent: 36.3 },
+
+  { id: 15, projectName: 'Bajaj Finserv Monthly Mapping Updation', clientName: 'Bajaj Finserv AMC', clientPoc: 'Radhika Bajaj', deliverables: 60, contentFormat: 'Data', startDate: '2025-04-03', endDate: '2025-04-08', status: 'Ready for Invoice', manager: [], assignee: [], priority: 'Medium', timeScale: 'Delayed', completionPercent: 41.4 },
+  { id: 16, projectName: 'Bajaj Mapping Updation_Aug 2025', clientName: 'Bajaj Finserv AMC', clientPoc: 'Radhika Bajaj', deliverables: 12, contentFormat: 'Data', startDate: '2025-09-10', endDate: '2025-09-12', status: 'Ready for Invoice', manager: ['Shreshth Sawant', 'Jinkal Gala'], assignee: ['Aniket Bangal', 'Simran Baraskar'], priority: 'High', timeScale: 'Delayed', completionPercent: 36.1 },
+  { id: 17, projectName: 'Bajaj Product Brochures_Jan 2026', clientName: 'Bajaj Finserv AMC', clientPoc: 'Komal Bharti', deliverables: 5, contentFormat: 'Brochure', startDate: '2025-12-31', endDate: '2026-01-12', status: 'Delivered', manager: ['Jinkal Gala', 'Shreshth Sawant'], assignee: ['Aniket Bangal'], priority: 'High', timeScale: 'On-Time', completionPercent: 36.4 },
+  { id: 18, projectName: 'Bajaj Small Cap PPT - Design', clientName: 'Bajaj Finserv AMC', clientPoc: 'Srishti Singh', deliverables: 1, contentFormat: 'PPT', startDate: '2026-05-06', endDate: '2026-05-12', status: 'Raised Invoice', manager: ['Shreshth Sawant', 'Shraddha Batawale'], assignee: [], priority: 'High', timeScale: 'Delayed', completionPercent: 36.6 },
+
+  { id: 19, projectName: 'AMFI_SIP leaflet', clientName: 'AMFI', clientPoc: 'Mamtha Vaidya', deliverables: 10, contentFormat: 'Leaflet', startDate: '2024-09-19', endDate: '2025-08-20', status: 'Ready for Invoice', manager: ['Shruti Gawade'], assignee: ['Simran Baraskar', 'Shraddha Batawale'], priority: 'Low', timeScale: 'Delayed', completionPercent: 36.2 },
+  { id: 20, projectName: 'AMFI - Personal Finance Series 10 Videos', clientName: 'AMFI', clientPoc: 'Mamtha Vaidya', deliverables: 10, contentFormat: 'AV', startDate: '2025-02-24', endDate: '2025-11-25', status: 'Raised Invoice', manager: ['Shreshth Sawant', 'Shruti Gawade'], assignee: [], priority: 'Medium', timeScale: 'Delayed', completionPercent: 36.2 },
+  { id: 21, projectName: 'AMFI_Unclaimed Investments_Collaterals', clientName: 'AMFI', clientPoc: 'Punit Dharamsi', deliverables: 24, contentFormat: 'Collateral', startDate: '2025-09-30', endDate: '2025-10-13', status: 'Raised Invoice', manager: ['Shruti Gawade', 'Jinkal Gala'], assignee: ['Shreshth Sawant', 'Bhavya Darji'], priority: 'Medium', timeScale: 'Delayed', completionPercent: 35.8 },
+  { id: 22, projectName: 'AMFI_SEBI Check Tool AV', clientName: 'AMFI', clientPoc: 'Punit Dharamsi', deliverables: 11, contentFormat: 'AV', startDate: '2025-12-15', endDate: '2026-01-17', status: 'New', manager: ['Vishal Pund', 'Sakshi Agarwal'], assignee: ['Jinkal Gala', 'Simran Baraskar'], priority: 'High', timeScale: 'Delayed', completionPercent: 36.1 },
+]
