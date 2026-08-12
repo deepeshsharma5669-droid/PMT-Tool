@@ -1,0 +1,33 @@
+{
+  "summary": "Phase 4 TEMPORARY Client-simulation server actions (simulateClientApproveStageAction, simulateClientRequestChangesAction) tested end-to-end against real Supabase via /api/phase4_test, driven per-role with Playwright login (Admin / Manager Design / Member Design / unauth). 85/85 assertions passed. Coverage: gate (wrong secret -> 403; correct secret + unauth whoami -> {ok:true,user:null}); single-stage happy approve (next=null, deliv=100, project=100, stage=complete); multi-stage happy approve (next_stage_id=s1, s1/s2 rows untouched, deliv=33, project=33); single-revision loop (feedback + revision_count=1 + note stored, then approve preserves revision_count=1); triple revision loop (revcount 1->2->3, final approve preserves 3); feedback validation ('', spaces, '\\n\\t' -> 'Client feedback is required.'; 2001 chars -> '2000 characters or fewer'; 2000 chars -> ok); illegal state for approve AND request-changes across all 6 non-client_review statuses (pending/in_progress/manager_review/feedback/complete/hold) -> 409 WorkflowError code=stale_state, correct messages, state unchanged; duplicate approve sequential (2nd -> 'currently complete', project=50 on 2-stage fixture, no double advance); duplicate request-changes sequential (2nd stale, revcount stays 1); Promise.all concurrent approve (exactly one ok, one stale_state, project=100, no double advance); Promise.all concurrent request-changes (exactly one ok, one stale_state, revcount=1 — CAS invariant confirmed); AUTHZ: Manager same-dept approves OK; Manager wrong-dept -> AuthError 403 'Not your department' (both actions), state unchanged; Member -> AuthError 403 'Managers/Admins only for this action' (both actions); Unauth -> AuthError 401 'Not signed in' (both actions); end-to-end 3-stage workflow driven by Manager Design (stage_0 approve -> 33%, stage_1 -> 67%, stage_2 revision then approve -> 100% + is_complete=true); SQL-leak scan across all 26 captured ok:false bodies (no PGRST / 'null value in column' / 'duplicate key' / 'permission denied for relation' / 'syntax error at'). All fixtures torn down in finally blocks; 27 production stages untouched.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/tests/phase4/run_phase4_tests.py",
+    "/app/tests/phase4/results.json"
+  ],
+  "action_items": [
+    "After Phase 4 signoff (Client portal ships): delete /app/app/manager/simulate-client-actions.ts, remove the 'Simulate Client' block in components/manager/ApprovalRow.tsx (TEMPORARY CLIENT SIMULATION marker), delete /app/app/api/phase4_test/route.ts, remove '/api/phase4_test' from PUBLIC_PATHS in /app/proxy.ts, unset PHASE4_TEST_SECRET in /app/.env.local."
+  ],
+  "critical_code_review_comments": [
+    "simulateClientApproveStageAction correctly delegates to Phase 3 completeStageAndAdvance rather than re-implementing progression — no logic duplication.",
+    "simulateClientRequestChangesAction uses a compound CAS (.eq status=client_review AND .eq revision_count=observed) on the UPDATE, which is what allowed the concurrent request-changes test to observe exactly-one winner and revision_count = 1 (never 2). This is the critical invariant this phase must guarantee and it holds under Promise.all.",
+    "Feedback trimmed and length-validated (max 2000) BEFORE any DB write — empty/whitespace and >2000 rejected without state mutation (confirmed by re-reading state after each rejected call).",
+    "Auth guard is the same dept-scoped requireStageAccessAsManagerOrAdmin used elsewhere: Admin unrestricted, Manager Design allowed on Design stages, Manager Design rejected on Content stages with 'Not your department' 403, Member rejected with 'Managers/Admins only for this action' 403, unauth rejected with 'Not signed in' 401. All four rejection paths leave state untouched.",
+    "Illegal-state error messages include both the expected status ('client_review') and the actual status ('currently <status>') — user-friendly, non-leaking.",
+    "SQL-leak scan across every ok:false body captured during the run (26 total, including 12 illegal-state, 2 duplicate, 2 concurrent, 6 authz, 3 validation, 1 gate rejection) contains no Postgres error codes, no PGRST codes, no 'null value in column', no 'duplicate key', no 'permission denied for relation'.",
+    "Minor (non-blocking): the Error-vs-WorkflowError split in the action leads to feedback-validation failures being reported by /api/phase4_test as {status:500, kind:'Error'} instead of {status:400, kind:'ValidationError'}. The error MESSAGES are correct and the DB state is correctly unchanged — this is only a wire-shape observation, not a defect against the spec (spec says 'ok:false with error message'). If desired for future polish, throw WorkflowError('validation', ...) with status 400 instead of plain Error for the two validation paths.",
+    "Route file /app/app/api/phase4_test/route.ts and PUBLIC_PATHS exemption in /app/proxy.ts are correctly gated by PHASE4_TEST_SECRET env var and MUST be removed at signoff (already in action_items)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (85/85)", "frontend": "n/a (backend-only per request)"},
+  "test_credentials": "Passed via env vars at runtime only. Never written to files under /app, never echoed to results.json. Roles referenced by label only.",
+  "seed_data_creation": "Multiple ephemeral fixtures (client + project + 1..3 deliverables + N stages, marked 'PHASE4_TEST_') created via service-role admin client per test and torn down in finally blocks. 27 production stages untouched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Harness at /app/tests/phase4/run_phase4_tests.py. Env vars: BASE_URL, PHASE4_SECRET, ADMIN_EMAIL/ADMIN_PW, MGRD_EMAIL/MGRD_PW, MBRD_EMAIL/MBRD_PW. Uses Playwright login then context.request.post so Supabase auth cookies attach. Results written to /app/tests/phase4/results.json without credentials. All fixtures torn down in finally.",
+  "rca of the issue": "N/A — no failures. Phase 4 simulate* implementation matches spec across all 85 assertions including the critical compound-CAS concurrency invariant for request-changes."
+}
