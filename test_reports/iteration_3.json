@@ -1,0 +1,36 @@
+{
+  "summary": "Phase 3 progression + progress logic (lib/progression.ts) tested end-to-end against real Supabase via /api/phase3_test using Playwright-driven per-role sessions (Admin, Manager Design, Member Design, unauth). 43/43 assertions passed. Coverage: gate (no secret/wrong secret -> 403; correct secret + no admin -> {ok:false, kind:'AuthError', status:403, error:'Admin only'}); getNextStage across contiguous orders + final=null + nonexistent order=null; calculateDeliverableProgress base 0%, 1/3=33, 2/3=67, 3/3=100 is_complete=true; calculateProjectProgress avg formula shape[2,2] at 0/25/50/100; recomputeProjectProgress persists completion_percent AND deliverables count (verified via readProject); completeStageAndAdvance happy path (deliv=33, project=33, next=pending, later stages untouched); final-stage advance (next_stage_id=null, deliv=100, project=100 persisted); illegal state (pending -> complete) 409 WorkflowError code='stale_state' error containing 'client_review' and 'currently pending', all state unchanged; duplicate/stale 409 'currently complete'; Promise.all concurrency exactly-one-wins (one ok:true, one stale_state, project=50 persisted); no-auto-skip invariant (stage1/stage2 remain pending after stage0 completes); later-stage-already-complete emits warnings[] containing 'data-integrity' AND op still succeeds AND stage1 unchanged; live-sync deliverables count remains 2 after partial completion; auth regression (Manager, Member, unauth all -> AuthError 'Admin only' 403); SQL-leak scan across all captured error bodies clean (no PGRST/'null value in column'/'duplicate key'/'permission denied for relation'). All fixtures torn down in finally blocks; production 27 stages untouched.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/tests/phase3/run_phase3_tests.py",
+    "/app/tests/phase3/results.json"
+  ],
+  "action_items": [
+    "After Phase 3 signoff: delete /app/app/api/phase3_test/route.ts, remove '/api/phase3_test' from PUBLIC_PATHS in /app/proxy.ts, unset PHASE3_TEST_SECRET in /app/.env.local."
+  ],
+  "critical_code_review_comments": [
+    "getNextStage correctly uses .gt('stage_order', current) + order asc + limit(1) rather than stage_order + 1, so gaps do not break resolution (verified with orderStage=99 -> null).",
+    "calculateDeliverableProgress derives percent from LIVE rows (never a snapshot) with Math.round + clamp[0,100]; 2/3 -> 67, 1/3 -> 33 confirmed empirically.",
+    "calculateProjectProgress is UNWEIGHTED average of deliverable percents (not stage-weighted) per spec; verified with shape[2,2] giving (50+0)/2 = 25.",
+    "recomputeProjectProgress persists BOTH completion_percent AND the deliverables count from live rows in the same UPDATE, defending against drift of the denormalised column.",
+    "completeStageAndAdvance uses transitionStage('client_review' -> 'complete') for a race-safe conditional UPDATE. Promise.all double-fire produced exactly one ok and one WorkflowError('stale_state'); final row = complete, project persisted at 50. No double recompute of project on the losing call.",
+    "No auto-skip / no persisted 'ready' state: after stage0 completes, stage1 and stage2 rows are byte-for-byte unchanged (status='pending'). Confirmed by explicit readStage.",
+    "Data-integrity invariant: when a later stage is already 'complete' before the previous stage advances, warnings[] receives a 'data-integrity: next stage id=... was already complete...' entry AND the operation still succeeds AND the later stage row is not modified.",
+    "Illegal-state and duplicate error messages include both the expected ('client_review') and actual ('currently pending' / 'currently complete') status text - user-friendly and non-leaking.",
+    "Full SQL-leak scan across every ok:false body in the run (gate rejects + workflow errors + auth errors) contained no PGRST codes, no 'null value in column', no 'duplicate key', no 'permission denied for relation'.",
+    "Endpoint requires Admin session for EVERY action (createFixture, tearDownFixture, setStageStatus, readStage, readProject, and all 5 progression helpers). Manager Design and Member Design both correctly rejected with AuthError 'Admin only' 403.",
+    "Env-unset -> 404 branch not exercised at runtime (PHASE3_TEST_SECRET is set), but code inspection at route.ts:151-152 confirms the guard is present and correct."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (43/43)", "frontend": "n/a (backend-only run per request)"},
+  "test_credentials": "Passed via env vars at runtime only. Never written to files under /app, never echoed to results.json. Roles referenced by label only.",
+  "seed_data_creation": "Multiple ephemeral fixtures (client + project + N deliverables + M stages each, marked 'PHASE3_TEST_') created via service-role per test and torn down in finally blocks. Production data untouched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Harness at /app/tests/phase3/run_phase3_tests.py. Env vars: BASE_URL, PHASE3_SECRET, ADMIN_EMAIL/ADMIN_PW, MGR_EMAIL/MGR_PW, MBR_EMAIL/MBR_PW. Uses Playwright login then page.request.post so Supabase auth cookies attach. Exits non-zero on any failure. Results at /app/tests/phase3/results.json (no credentials). Fixtures always torn down in finally.",
+  "rca of the issue": "N/A - no failures. Phase 3 progression implementation matches spec across all 43 assertions."
+}
