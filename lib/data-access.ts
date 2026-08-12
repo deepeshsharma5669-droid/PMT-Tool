@@ -102,7 +102,7 @@ export async function getClientHealth() {
     return {
       client: name,
       healthScore,
-      trend: 'flat' as const,
+      trend: 'flat' as 'up' | 'down' | 'flat',
       avgRevisions: 0,
       renewalDate: '—',
     }

@@ -1,10 +1,21 @@
+import { redirect } from 'next/navigation'
 import { ManagerNav } from '@/components/manager/ManagerNav'
-import { CURRENT_MANAGER } from '@/lib/data/manager-access'
 import { LogoutButton } from '@/components/shared/LogoutButton'
 import Link from 'next/link'
+import { getCurrentManager } from '@/lib/manager-data'
 
-export default function ManagerLayout({ children }: { children: React.ReactNode }) {
-  const initials = CURRENT_MANAGER.split(' ').map(w => w[0]).join('')
+export default async function ManagerLayout({ children }: { children: React.ReactNode }) {
+  const manager = await getCurrentManager()
+
+  // proxy.ts already gates /manager by role, so this shouldn't normally
+  // happen — but if someone's managers row got deleted after login, fail
+  // safely instead of rendering with no identity at all.
+  if (!manager) {
+    redirect('/login')
+  }
+
+  const initials = manager.name.split(' ').map(w => w[0]).join('')
+
   return (
     <div>
       <header className="shell-top">
@@ -20,7 +31,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       </header>
       <div className="shell-body">
         <p className="hint" style={{ marginBottom: 12 }}>
-          {CURRENT_MANAGER} · <b style={{ color: 'var(--ink-soft)' }}>Content Manager</b> · scoped to the Content stage, across every client
+          {manager.name} · <b style={{ color: 'var(--ink-soft)' }}>{manager.department} Manager</b> · scoped to the {manager.department} stage, across every client
         </p>
         {children}
       </div>

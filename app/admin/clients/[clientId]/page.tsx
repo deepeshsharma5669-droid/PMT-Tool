@@ -138,7 +138,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ clien
                     <div style={{ display: 'flex', gap: 6 }}>
                       <EditCampaignModal
                         project={{ id: p.id, projectName: p.projectName, manager: p.manager, priority: p.priority, status: p.status, startDate: p.startDate }}
-                        managers={managers.map((m: { id: number; name: string }) => ({ id: m.id, name: m.name }))}
+                        managers={managers.map((m: { id: number; name: string; department: string | null }) => ({ id: m.id, name: m.name, department: m.department }))}
                       />
                       <DeleteCampaignButton id={p.id} name={p.projectName} />
                     </div>

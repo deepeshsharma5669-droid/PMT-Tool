@@ -14,7 +14,7 @@ export default async function NewCampaignPage() {
       </div>
       <NewCampaignForm
         clients={clients.map(c => ({ id: c.id, name: c.name }))}
-        managers={managers.map(m => ({ id: m.id, name: m.name }))}
+        managers={managers.map(m => ({ id: m.id, name: m.name, department: m.department }))}
         sequences={sequences}
       />
     </div>

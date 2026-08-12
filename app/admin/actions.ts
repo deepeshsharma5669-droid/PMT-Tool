@@ -34,7 +34,8 @@ export async function createCampaignAction(formData: FormData) {
   const clientId = formData.get('clientId') as string
   const projectName = formData.get('projectName') as string
   const startDate = formData.get('startDate') as string
-  const managerName = formData.get('managerName') as string
+  const managerNamesJson = formData.get('managerNames') as string
+  const managerNames = managerNamesJson ? (JSON.parse(managerNamesJson) as string[]) : []
   const deliverablesJson = formData.get('deliverables') as string
   const deliverables = JSON.parse(deliverablesJson) as { name: string; type: string }[]
 
@@ -59,7 +60,7 @@ export async function createCampaignAction(formData: FormData) {
       start_date: startDate,
       end_date: null,
       status: 'New',
-      manager: managerName ? [managerName] : [],
+      manager: managerNames,
       assignee: [],
       priority: 'Medium',
       time_scale: null,
@@ -414,7 +415,8 @@ export async function updateCampaignAction(formData: FormData) {
   const supabase = await createClient()
   const id = Number(formData.get('id'))
   const projectName = formData.get('projectName') as string
-  const managerName = formData.get('managerName') as string
+  const managerNamesJson = formData.get('managerNames') as string
+  const managerNames = managerNamesJson ? (JSON.parse(managerNamesJson) as string[]) : []
   const priority = formData.get('priority') as string
   const status = formData.get('status') as string
   const startDate = formData.get('startDate') as string
@@ -423,7 +425,7 @@ export async function updateCampaignAction(formData: FormData) {
     .from('projects')
     .update({
       project_name: projectName,
-      manager: managerName ? [managerName] : [],
+      manager: managerNames,
       priority,
       status,
       start_date: startDate,
