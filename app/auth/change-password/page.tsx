@@ -72,7 +72,7 @@ function ChangePasswordForm() {
     }
 
     if (userData.user?.email) {
-      await clearMustChangePassword(userData.user.email)
+      await clearMustChangePassword()
     }
 
     setSubmitting(false)

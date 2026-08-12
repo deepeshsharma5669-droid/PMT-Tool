@@ -1,0 +1,34 @@
+{
+  "summary": "Phase 1 server-side auth/authz hardening tested via /api/phase1_test with Playwright-driven login sessions. 25/25 tests passed. Covered: PHASE1_TEST_SECRET gate (missing/wrong header -> 403; missing body -> 400), unauthenticated calls (requireUser & requireAdmin both return 'Not signed in' 401 - not 'Admin only'), Admin-only guard (Admin passes; all Managers & Member return 'Admin only' 403), Manager dept-scoping (Manager Design accepted on Design stage; Manager Content/Animation rejected on Design stage with 'Not your department'; Manager Design correctly rejected on a null-dept stage with 'Stage has no department set...'), Admin cross-dept access ok, Member scoping (Managers/Admins-only action rejected; requireStageSubmitAccess -> 'Not your task' since assignee=null everywhere), session-email binding on resolveRoleAndRedirect (foreign email -> {role:null,redirectPath:null}; own email -> role='Member'). Login dashboards load for all 5 roles at expected home paths.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/phase1/run_phase1_tests.py",
+    "/app/tests/phase1/results.json"
+  ],
+  "action_items": [
+    "After Phase 1 signoff, remove /app/app/api/phase1_test/route.ts, drop '/api/phase1_test' from PUBLIC_PATHS in proxy.ts, and unset PHASE1_TEST_SECRET as planned."
+  ],
+  "critical_code_review_comments": [
+    "Guard behaviour is consistent: unauthenticated requests short-circuit at requireUser with 401 before any role check, so 'Admin only' is never leaked to anonymous callers - good.",
+    "Stage-dept fallback (deliverable_stages.department -> sequence_stages via sequence_id+stage_name) works: 27 stages resolved to a mix of Design/Content/Product/None; guards correctly reject on 'Stage has no department set' when resolved dept is null, rather than silently allowing.",
+    "resolveRoleAndRedirect correctly enforces session_email == arg_email; foreign email returns nulls without exposing role info.",
+    "Test endpoint itself is properly gated by x-phase1-test-secret header (403 on missing/wrong) and gracefully returns 400 on missing/invalid body. No public backdoor.",
+    "Observation (non-blocking, Phase 1 scope-out): Client role server actions in /app/app/admin/actions.ts (clientApproveStageAction, clientRequestChangesAction) remain unprotected as intentionally noted in the request - not flagged."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (25/25)", "frontend": "n/a (backend-only run)"},
+  "test_credentials": "Provided via env vars at runtime only; not persisted. Role labels used in report.",
+  "seed_data_creation": "None. No DB writes. Read-only via listStages/resolveStageDept.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Test harness at /app/tests/phase1/run_phase1_tests.py drives login via Playwright then uses page.request.post so Supabase auth cookies attach. Pass credentials via env vars (A_EMAIL/A_PW, MA_/MC_/MD_/ME_) - never hardcode. PHASE1_TEST_SECRET env at test route matches header value. Existing DB state: 27 deliverable_stages, all assignee=null, all department=null (dept resolves via sequence_stages fallback). Stage id=2 is a Design stage; id=1 has null resolved dept - useful for reproducing both rejection paths. results.json has emails scrubbed.",
+  "rca of the issue": "N/A - no failures."
+}

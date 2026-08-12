@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { generateTempPassword } from '@/lib/password'
+import { requireAdmin } from '@/lib/auth'
 
 const ROLE_HOME: Record<string, string> = { Admin: '/admin', Manager: '/manager', Member: '/member' }
 
@@ -29,6 +30,7 @@ async function sendSetupLink(email: string, role: string) {
 }
 
 export async function createCampaignAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
 
   const clientId = formData.get('clientId') as string
@@ -114,6 +116,7 @@ export async function createCampaignAction(formData: FormData) {
 }
 
 export async function createClientAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
 
   const name = formData.get('name') as string
@@ -136,6 +139,7 @@ export async function createClientAction(formData: FormData) {
 }
 
 export async function addHolidayAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const name = formData.get('name') as string
   const date = formData.get('date') as string
@@ -149,6 +153,7 @@ export async function addHolidayAction(formData: FormData) {
 }
 
 export async function removeHolidayAction(id: number) {
+  await requireAdmin()
   const supabase = await createClient()
   const { error } = await supabase.from('holidays').delete().eq('id', id)
   if (error) {
@@ -159,6 +164,7 @@ export async function removeHolidayAction(id: number) {
 }
 
 export async function updateOrgSettingsAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const timezone = formData.get('timezone') as string
   const dayStarts = formData.get('dayStarts') as string
@@ -181,6 +187,7 @@ export async function updateOrgSettingsAction(formData: FormData) {
 }
 
 export async function resendPasswordEmailAction(email: string, role: string) {
+  await requireAdmin()
   const result = await sendSetupLink(email, role)
   if (!result.success) {
     throw new Error(result.error)
@@ -189,6 +196,7 @@ export async function resendPasswordEmailAction(email: string, role: string) {
 }
 
 export async function inviteUserAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const admin = createAdminClient()
 
@@ -231,6 +239,7 @@ export async function inviteUserAction(formData: FormData) {
 }
 
 export async function createSequenceAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const name = formData.get('name') as string
   const description = formData.get('description') as string
@@ -300,6 +309,7 @@ export async function clientRequestChangesAction(deliverableStageId: number, fee
   revalidatePath('/client')
 }
 export async function getPendingRegistrations() {
+  await requireAdmin()
   const supabase = await createClient()
   const admin = createAdminClient()
 
@@ -323,6 +333,7 @@ export async function getPendingRegistrations() {
 }
 
 export async function approveUserAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
 
   const name = formData.get('name') as string
@@ -341,6 +352,7 @@ export async function approveUserAction(formData: FormData) {
 }
 
 export async function updateSequenceAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const id = Number(formData.get('id'))
   const name = formData.get('name') as string
@@ -393,6 +405,7 @@ export async function updateSequenceAction(formData: FormData) {
 }
 
 export async function deleteSequenceAction(id: number) {
+  await requireAdmin()
   const supabase = await createClient()
 
   const { count } = await supabase.from('deliverables').select('id', { count: 'exact', head: true }).eq('sequence_id', id)
@@ -412,6 +425,7 @@ export async function deleteSequenceAction(id: number) {
 }
 
 export async function updateCampaignAction(formData: FormData) {
+  await requireAdmin()
   const supabase = await createClient()
   const id = Number(formData.get('id'))
   const projectName = formData.get('projectName') as string
@@ -441,6 +455,7 @@ export async function updateCampaignAction(formData: FormData) {
 }
 
 export async function deleteCampaignAction(id: number) {
+  await requireAdmin()
   const supabase = await createClient()
 
   const { data: deliverableRows } = await supabase.from('deliverables').select('id').eq('project_id', id)

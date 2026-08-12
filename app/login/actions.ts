@@ -16,6 +16,13 @@ const ROLE_HOME: Record<string, string> = {
 export async function resolveRoleAndRedirect(email: string): Promise<ResolvedRole> {
   const supabase = await createClient()
 
+  // Never trust the caller-supplied email — this action is public. Only allow it
+  // to reveal role information for the currently signed-in user's own email.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email || user.email.toLowerCase() !== email.toLowerCase()) {
+    return { role: null, redirectPath: null }
+  }
+
   const { data: managerRow } = await supabase
     .from('managers')
     .select('role, must_change_password')
