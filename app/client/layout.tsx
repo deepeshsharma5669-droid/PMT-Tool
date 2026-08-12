@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { LogoutButton } from '@/components/shared/LogoutButton'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +13,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <Link href="/client/approvals" className="shell-nav-item">Approvals</Link>
         </div>
         <div className="shell-right">
-          <span className="switch-link">Log out</span>
+          <Link href="/auth/change-password?returnTo=/client" className="switch-link">Change password</Link>
+          <LogoutButton />
           <div className="shell-avatar">AN</div>
         </div>
       </header>

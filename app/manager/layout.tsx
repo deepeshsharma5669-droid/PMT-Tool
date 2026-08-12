@@ -1,5 +1,7 @@
 import { ManagerNav } from '@/components/manager/ManagerNav'
 import { CURRENT_MANAGER } from '@/lib/data/manager-access'
+import { LogoutButton } from '@/components/shared/LogoutButton'
+import Link from 'next/link'
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const initials = CURRENT_MANAGER.split(' ').map(w => w[0]).join('')
@@ -11,7 +13,8 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         </div>
         <ManagerNav />
         <div className="shell-right">
-          <span className="switch-link">Log out</span>
+          <Link href="/auth/change-password?returnTo=/manager" className="switch-link">Change password</Link>
+          <LogoutButton />
           <div className="shell-avatar">{initials}</div>
         </div>
       </header>

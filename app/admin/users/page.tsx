@@ -1,10 +1,15 @@
 import { RoleBadge } from '@/components/ui/RoleBadge'
-import { getTeamRoster, getUserKpis } from '@/lib/data-access'
+import { getTeamRoster, getUserKpis, getManagers } from '@/lib/data-access'
+import { getPendingRegistrations } from '@/app/admin/actions'
 import { InviteUserModal } from '@/components/admin/InviteUserModal'
+import { ResendPasswordButton } from '@/components/admin/ResendPasswordButton'
+import { ApproveRegistrationRow } from '@/components/admin/ApproveRegistrationRow'
 
 export default async function AdminUsers() {
   const roster = await getTeamRoster()
   const kpis = await getUserKpis()
+  const managers = await getManagers()
+  const pending = await getPendingRegistrations()
 
   return (
     <div>
@@ -23,6 +28,80 @@ export default async function AdminUsers() {
         <div className="stat-card">
           <div className="l">Overloaded (5+ open)</div>
           <div className="v" style={{ color: kpis.overloaded > 0 ? 'var(--danger)' : undefined }}>{kpis.overloaded}</div>
+        </div>
+      </div>
+
+      {pending.length > 0 && (
+        <div className="card" style={{ marginBottom: 20, borderColor: 'var(--amber)' }}>
+          <div className="panel-head">
+            <h2>Pending Registrations</h2>
+            <span className="hint">{pending.length} waiting for a role</span>
+          </div>
+          <div className="panel-body" style={{ padding: '0 18px 6px' }}>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Department</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((p: { id: string; name: string; email: string }) => (
+                  <ApproveRegistrationRow key={p.id} name={p.name} email={p.email} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="panel-head">
+          <h2>Accounts</h2>
+          <span className="hint">Login status — resend if someone never finished setup</span>
+        </div>
+        <div className="panel-body" style={{ padding: '0 18px 6px' }}>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {managers.map((m: { id: number; name: string; email: string; role: string; department: string; must_change_password: boolean }) => (
+                <tr key={m.id}>
+                  <td className="name-cell">{m.name}</td>
+                  <td style={{ fontSize: 12 }}>{m.email ?? '—'}</td>
+                  <td><RoleBadge role={m.role as any} /></td>
+                  <td>{m.department}</td>
+                  <td>
+                    {m.must_change_password ? (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: 'var(--amber-soft)', color: 'var(--amber)' }}>
+                        Pending setup
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: 'var(--success-soft)', color: 'var(--success)' }}>
+                        Active
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {m.must_change_password && m.email && (
+                      <ResendPasswordButton email={m.email} role={m.role} />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

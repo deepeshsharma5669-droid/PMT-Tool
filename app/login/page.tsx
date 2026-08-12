@@ -29,7 +29,7 @@ export default function LoginPage() {
     setSubmitting(false)
 
     if (!resolved.role) {
-      setError('Signed in, but no matching PMT account was found for this email. Contact an admin.')
+      setError('Your account is registered but not yet approved — ask an admin to assign your role.')
       return
     }
 
@@ -57,6 +57,9 @@ export default function LoginPage() {
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ width: '100%' }}>
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
+            <a href="/register" className="btn btn-ghost" style={{ width: '100%', marginTop: 8, textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+              Don&apos;t have an account? Register
+            </a>
           </div>
         </form>
       </div>

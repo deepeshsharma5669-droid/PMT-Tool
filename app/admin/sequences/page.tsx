@@ -1,5 +1,6 @@
 import { getSequences } from '@/lib/data-access'
 import { NewSequenceForm } from '@/components/admin/NewSequenceForm'
+import { DeleteSequenceButton } from '@/components/admin/DeleteSequenceButton'
 
 export default async function AdminSequences() {
   const sequences = await getSequences()
@@ -21,8 +22,14 @@ export default async function AdminSequences() {
           <div className="panel-body">
             {sequences.map(s => (
               <div key={s.id} className="seq-item">
-                <div className="n">
-                  {s.name} {s.isDefault && <span className="tag-default">default</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="n">
+                    {s.name} {s.isDefault && <span className="tag-default">default</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <a href={`/admin/sequences/${s.id}`} className="btn btn-ghost" style={{ padding: '3px 10px', fontSize: 11, textDecoration: 'none' }}>Edit</a>
+                    <DeleteSequenceButton id={s.id} name={s.name} />
+                  </div>
                 </div>
                 <div className="m">
                   {s.stages.map((st, i) => (

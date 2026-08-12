@@ -1,4 +1,6 @@
 import { AdminNav } from '@/components/admin/AdminNav'
+import { LogoutButton } from '@/components/shared/LogoutButton'
+import Link from 'next/link'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +11,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 </a>
         <AdminNav />
         <div className="shell-right">
-          <span className="switch-link">Log out</span>
+          <Link href="/auth/change-password?returnTo=/admin" className="switch-link">Change password</Link>
+          <LogoutButton />
           <div className="shell-avatar">PA</div>
         </div>
       </header>

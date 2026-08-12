@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
-import { getProjectsByClient, getAgingProjectsByClient, getClientRollup, getDeliverablesByClient } from '@/lib/data-access'
+import { getProjectsByClient, getAgingProjectsByClient, getClientRollup, getDeliverablesByClient, getManagers } from '@/lib/data-access'
 import { ClientDeliverablesPanel } from '@/components/admin/ClientDeliverablesPanel'
+import { EditCampaignModal } from '@/components/admin/EditCampaignModal'
+import { DeleteCampaignButton } from '@/components/admin/DeleteCampaignButton'
 
 function statusColor(status: string) {
   if (['Delivered', 'Raised Invoice', 'Ready for Invoice', 'Completed'].includes(status)) return 'var(--success)'
@@ -17,6 +19,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ clien
   const rollup = await getClientRollup()
   const summary = rollup.find(c => c.client === clientName)
   const deliverablesData = await getDeliverablesByClient(clientName)
+  const managers = await getManagers()
 
   if (!summary) notFound()
 
@@ -120,7 +123,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ clien
         <div className="panel-body" style={{ padding: '0 18px 6px' }}>
           <table className="data">
             <thead>
-              <tr><th>Project</th><th>POC</th><th>Format</th><th>Status</th><th>Priority</th><th>Completion</th></tr>
+              <tr><th>Project</th><th>POC</th><th>Format</th><th>Status</th><th>Priority</th><th>Completion</th><th></th></tr>
             </thead>
             <tbody>
               {projects.map(p => (
@@ -131,6 +134,15 @@ export default async function ClientDetail({ params }: { params: Promise<{ clien
                   <td style={{ color: statusColor(p.status) }}>{p.status}</td>
                   <td>{p.priority}</td>
                   <td>{p.completionPercent}%</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <EditCampaignModal
+                        project={{ id: p.id, projectName: p.projectName, manager: p.manager, priority: p.priority, status: p.status, startDate: p.startDate }}
+                        managers={managers.map((m: { id: number; name: string }) => ({ id: m.id, name: m.name }))}
+                      />
+                      <DeleteCampaignButton id={p.id} name={p.projectName} />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
