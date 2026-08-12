@@ -1,0 +1,35 @@
+{
+  "summary": "Phase 2 state-machine (lib/workflow.ts + app/manager/actions.ts) tested end-to-end against real Supabase DB via /api/phase2_test using Playwright-driven per-user sessions (Admin, Manager Content, Member Design, unauth). 64/64 assertions passed. Covered: gate (wrong/missing secret -> 403), transitionsMatrix EXACT-match to spec, full 49-cell checkTransition truth table (7 legal / 42 illegal), fixture lifecycle (create -> pending -> transitions -> teardown), legal happy path (pending -> in_progress -> manager_review -> client_review), revision path (feedback -> in_progress -> manager_review -> in_progress with note), all 13 illegal (from,action) combos returning 409 WorkflowError 'stale_state' with exact message shape 'Stage must be in <expected> to perform this action (currently <actual>).' AND state-unchanged verification after each, rawTransition invalid_transition guard (pending->complete, pending->client_review), status-in-extra defence-in-depth, double-click concurrency (exactly one 200 + one 409 stale_state), simultaneous approve+sendBack race (exactly one wins), stale-browser assign, Phase 1 spot-checks (Manager Content on Design -> 403 'Not your department'; Member approve -> 403 'Managers/Admins only for this action'; Member own-task submit ok; Member foreign task -> 403 'Not your task'), unauthenticated -> 401 'Not signed in', not-found stage -> 404 'Stage not found.', full SQL-leak scan across 24 error bodies (clean - no PGRST/null value/duplicate key/permission denied). Fixture torn down via finally block; no production stages touched.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/phase2_test (rawTransition with extra.status)", "issue": "The status-in-extra defence-in-depth path throws a plain Error, so toResp() maps it to {status:500, kind:'Error'} in the response body (HTTP 200). Not exposed via any real server action (only rawTransition path). Not a security issue since the guard fires correctly and the error message ('transitionStage: do not pass `status` in `extra`') does not leak SQL. Consider throwing a WorkflowError with code 'invalid_transition' for consistency, but not required by spec."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/tests/phase2/run_phase2_tests.py",
+    "/app/tests/phase2/results.json"
+  ],
+  "action_items": [
+    "After Phase 2 signoff: delete /app/app/api/phase2_test/route.ts, remove '/api/phase2_test' from PUBLIC_PATHS in /app/proxy.ts, unset PHASE2_TEST_SECRET.",
+    "Optional (non-blocking): in lib/workflow.ts, convert the `status-in-extra` throw from a plain Error to a WorkflowError('invalid_transition', ...) so callers get a consistent 409 shape instead of a 500-kind response.",
+    "Test artefacts under /app/tests/phase2/ can be kept for regression or deleted at cleanup."
+  ],
+  "critical_code_review_comments": [
+    "State machine enforcement is race-safe: transitionStage uses a single conditional UPDATE (.eq('id').eq('status')/.in('status')) and .select() to distinguish 0-row no-op from success. Verified empirically via Promise.all double-submit and approve/sendBack races - exactly one wins in both cases.",
+    "Post-conflict probe distinguishes not_found (404) vs stale_state (409) via a subsequent SELECT - verified with stageId=999999999 returning 'Stage not found.' 404.",
+    "Manager actions never accept a status from the caller: assign/submit/approve/sendBack/reassignForRevision each call transitionStage with a hardcoded expectedFrom + to. Confirmed by inspecting /app/app/manager/actions.ts.",
+    "Phase 1 guards run BEFORE Phase 2 transition: verified because Manager Content approve on a Design stage returned 403 AuthError 'Not your department' rather than a 409 workflow error, and Member approve returned 403 'Managers/Admins only' before any state check.",
+    "No SQL / driver detail leaks in any of the 24 error bodies captured across the run (scanned for PGRST, 'null value in column', 'duplicate key', 'permission denied for relation').",
+    "Test endpoint properly gated: wrong secret -> 403, missing header -> 403. The unset-env -> 404 branch was not exercised because PHASE2_TEST_SECRET is set in this environment; code inspection confirms the guard exists at route.ts:148."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (64/64)", "frontend": "n/a (backend-only run)"},
+  "test_credentials": "Provided via env vars at runtime only; never written to /app files or logs. Roles referenced by label only.",
+  "seed_data_creation": "One ephemeral fixture (client + project + deliverable + stage) created via service-role, exercised through all transitions, and torn down in a finally block. Production 27 deliverable_stages untouched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Test harness at /app/tests/phase2/run_phase2_tests.py drives login via Playwright then uses page.request.post so Supabase auth cookies attach. Pass credentials via env vars (ADMIN_EMAIL/ADMIN_PW, MGR_CONTENT_*, MGR_DESIGN_*, MBR_DESIGN_*) plus PHASE2_SECRET. Fixture teardown always runs in finally. Script exits non-zero on any failure. Results JSON at /app/tests/phase2/results.json (no credentials embedded).",
+  "rca of the issue": "N/A - no failures."
+}
