@@ -16,24 +16,28 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
 
-    const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (signInError) {
+      if (signInError) {
+        setError(signInError.message)
+        return
+      }
+
+      const resolved = await resolveRoleAndRedirect(email)
+
+      if (!resolved.role) {
+        setError('Your account is registered but not yet approved — ask an admin to assign your role.')
+        return
+      }
+
+      router.push(resolved.redirectPath)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.')
+    } finally {
       setSubmitting(false)
-      setError(signInError.message)
-      return
     }
-
-    const resolved = await resolveRoleAndRedirect(email)
-    setSubmitting(false)
-
-    if (!resolved.role) {
-      setError('Your account is registered but not yet approved — ask an admin to assign your role.')
-      return
-    }
-
-    router.push(resolved.redirectPath)
   }
 
   return (
