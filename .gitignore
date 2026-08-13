@@ -47,3 +47,9 @@ backend/__pycache__/
 
 # stray accidental zip backups sitting in the repo
 *.zip
+.env
+.env.*
+*.env
+credentials.json
+*.key
+.credentials
