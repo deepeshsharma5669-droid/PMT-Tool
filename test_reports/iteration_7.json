@@ -1,0 +1,41 @@
+{
+  "summary": "Phase 6A Manager-mediated Client Decision workflow E2E verified on https://pmt-repo-restore.preview.emergentagent.com against real Supabase. Created temporary fixtures (client 51 / project 61 / deliverable 57 / stages 105 Content=complete + 106 Design=pending, dept Design) via Supabase REST, then ran TWO complete revision rounds fully through the UI: Manager (james / 'deep 3') assigns harsh belsare -> Member Submit -> Manager 'Approve -> Send to client' -> Client Decision panel -> Record Client Changes (Round 1) -> Member 'Rework Needed' + View Feedback + Resume Work + resubmit -> Manager approve -> Record Client Changes (Round 2, executed as a CONCURRENCY test) -> Member rework/resubmit -> Manager approve -> Confirm Client Approval (also as a CONCURRENCY test) -> stage complete. All 10 requested scenarios PASSED. DB verification after every step: revision_count 0->1->2 (never double-bumped), note stored exactly as 'Recorded by deep 3 on <ISO>:\\n\\n<feedback>', final stage status=complete with revision_count=2, projects.completion_percent recalculated to 100.00. Panel wording/testids match spec, CSS textTransform on the 'Client Decision' label computed as 'uppercase', and NONE of the forbidden strings ('Simulate', 'TEMPORARY', 'testing only', 'until real client sign-in') appear anywhere in the app source or on any rendered page. Members see zero client-decision testids in feedback/client_review states. Authorization: unauth /manager/approvals -> 307 /login; Member -> /member. Static quality: npx tsc --noEmit exit 0, eslint on both touched files 0 issues, npx next build compiled all 22 routes with 0 errors. Hygiene: app/manager/simulate-client-actions.ts is deleted; the only 'simulate' occurrence in the codebase is the single historical docblock line in client-decision-actions.ts; legacy clientApproveStageAction/clientRequestChangesAction remain referenced only by the dormant /client route + components/client/ClientCampaignsView.tsx. All PMT-TEST fixtures deleted afterwards (verified 0 leftover rows) and nextjs restarted healthy after the build.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Concurrent Client Decision (losing request)",
+        "issue": "When a second overlapping request loses the compound CAS race, the server correctly throws WorkflowError('stale_state') (server log: \"Stage is no longer awaiting client review.\" / \"Stage must be in client_review to perform this action (currently complete).\"), but because this is a production Next build the client only receives the generic masked digest error, so the Manager sees an alert() reading 'An error occurred in the Server Components render. The specific message is omitted in production builds...' plus a 500 in the network tab. Data integrity is intact (exactly one transition, exactly one revision increment) - this is purely an error-messaging UX gap. Consider returning a typed { ok: false, code, message } result object from the actions instead of throwing, so the panel can render 'This stage is no longer awaiting client review - refresh.'",
+        "affected_selectors": ["[data-testid=\"client-approval-confirm-<stageId>\"]", "[data-testid=\"client-changes-submit-<stageId>\"]"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "/manager/approvals - Client Decision panel",
+        "issues": [
+          "After a successful action the ApprovalRow keeps `submitting=true` (run() only resets it on error), so both Client Decision buttons stay disabled until revalidation/reload lands. Functionally safe (acts as a soft double-submit guard) but the panel shows no pending/spinner text, so the state looks frozen for ~1s.",
+          "Errors are surfaced with window.alert() rather than inline panel error text (pre-existing Phase 4 pattern)."
+        ]
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/fixtures.py", "/app/test_reports/make_fixtures.py"],
+  "action_items": [
+    "OPTIONAL (non-blocking): surface the stale_state WorkflowError message to the Manager instead of the masked production digest error, and reset the submitting state / show a pending indicator after a successful client decision."
+  ],
+  "critical_code_review_comments": [
+    "recordClientChangesAction correctly does read-then-compound-CAS (status='client_review' AND revision_count=observed) and was empirically proven race-safe: two truly overlapping submits produced revision_count=2 (single increment) with the loser rejected.",
+    "recordClientApprovalAction correctly delegates to lib/progression::completeStageAndAdvance; overlapping confirmations produced exactly one completion and one recompute (project.completion_percent=100.00, no double transition).",
+    "Observation (out of Phase-6A scope): projects.status stayed 'New' even though completion_percent reached 100.00 - the progression recompute updates the percent but never promotes the project status; worth confirming this is intentional.",
+    "manager_review Approve/Send-back buttons and the member-assignment <select> still lack data-testid (carried over from iteration 6); automation still has to select them by accessible name/option text."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only request)", "frontend": "100% (10/10 scenarios passed)" },
+  "seed_data_creation": "Temporary Supabase fixtures: client 51 'PMT-TEST Client', project 61 'PMT-TEST Phase5 QA', deliverable 57, stages 105 (Content, complete) + 106 (Design). ALL DELETED after the run - verified 0 leftover rows for deliverable_id 57 / project 61 / client 51.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "No /app/memory/test_credentials.md exists (user opted out). Used the credentials from the review request: james@gmail.com/deepesh123 (Design Manager, managers.name='deep 3'), belsareharsh814@gmail.com/harsh123 (Design Member).",
+  "context_for_next_testing_agent": "Phase 6A is functionally complete and clean; no blocking defects. Reusable helpers: /app/test_reports/fixtures.py (Supabase REST via SUPABASE_SERVICE_ROLE_KEY in /app/.env.local) and make_fixtures.py create|show|cleanup (edit the stage ids in fixture_ids.json flow). Playwright notes: /login redirects an already-authenticated user to their own section, so click the 'Log out' link before switching accounts; wait ~2.5s after goto('/login') for hydration; page.reload() after every server action before asserting section counts. Concurrency can be reproduced with page.context.new_page() + asyncio.gather on the two confirm clicks, with dialog handlers attached to both pages. Server runs a PRODUCTION build via supervisor 'nextjs' (npx next start), so running `npx next build` requires `sudo supervisorctl restart nextjs` afterwards, and server action error messages are masked in the browser - read /var/log/supervisor/nextjs.err.log for the real WorkflowError text.",
+  "rca_of_the_issue": "No functional defect found. The only observed anomaly (opaque alert + console 500 on the losing concurrent request) is expected Next.js production behaviour: server actions that throw non-Error-boundary exceptions have their messages redacted and replaced with a digest. Root cause is the throw-based error contract in app/manager/client-decision-actions.ts combined with NODE_ENV=production; mitigation is to return a typed failure result and render it inline in ApprovalRow."
+}

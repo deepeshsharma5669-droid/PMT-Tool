@@ -69,3 +69,30 @@ Authoritative ownership: deliverable_stages.assignee_user_id UUID → auth.users
 - Node 20 vs Supabase's Node-22 preference: EBADENGINE warnings only. Build + runtime green.
 - Temporary Phase-4 Client simulation is intentionally retained; do NOT delete without wiring the real Client portal first.
 - Existing production stages remain unassigned as originally directed.
+
+## 2026-08-13 — Phase 6A delivered (Manager-mediated Client Decision — permanent)
+
+### Product decision
+PMT will NOT have Client authentication or a Client role. Clients confirm decisions with the Manager through phone / WhatsApp / email / meeting; the Manager records the decision in PMT. The Phase-4 "Simulate Client" temporary code is now permanent Manager-mediated functionality.
+
+### Files
+- **NEW** `/app/app/manager/client-decision-actions.ts` — permanent `recordClientApprovalAction`, `recordClientChangesAction`. Both use Phase-1 `requireStageAccessAsManagerOrAdmin`. Approval delegates to Phase-3 `completeStageAndAdvance`. Changes uses read-then-compound-CAS `UPDATE ... WHERE status='client_review' AND revision_count=<observed>` — proven race-safe in the testing agent's concurrency probe.
+- **DELETED** `/app/app/manager/simulate-client-actions.ts`.
+- **REWRITTEN** `/app/components/manager/ApprovalRow.tsx` — new `ClientDecisionRow` component + panel wording: "Client Decision · Record the decision the account manager confirmed with the client outside PMT (phone / WhatsApp / email / meeting)." + primary buttons "Client Approved" / "Client Requested Changes". Confirmation subpanels + textarea. All Simulate / TEMPORARY / testing only / until real client sign-in strings gone.
+
+### Attribution
+No schema change. Client feedback is stored in the existing `deliverable_stages.note` with a structured header: `Recorded by <manager.display_name> on <ISO>:\n\n<feedback>`. `deliverable_stages.updated_at` still provides "when" for approvals. Actions also return `{recordedBy, recordedAt}` in their result payload.
+
+### Verified (iteration_7.json — testing-agent independent)
+- 10/10 scenarios PASS; success rate 100%.
+- Two full revision rounds executed end-to-end.
+- Concurrency: two overlapping "Confirm Client Approval" clicks → exactly one completion (`status=complete`, `revision_count` unchanged). Two overlapping "Record Client Changes" clicks → `revision_count` incremented exactly once.
+- Static: `npx tsc --noEmit` ✅, ESLint ✅ (touched files), `npx next build` ✅ (22 routes, 0 errors).
+- Post-run DB state: 35 stages, 0 with non-null `assignee_user_id`, no PMT-TEST leftovers.
+- Legacy `clientApproveStageAction` / `clientRequestChangesAction` in `app/admin/actions.ts` remain referenced only by the dormant `/app/app/client/` route + `components/client/ClientCampaignsView.tsx`. Middleware (`proxy.ts`) blocks all non-Client roles from `/client`, and there are no Client-role users.
+
+### Remaining limitations (out of Phase 6A scope)
+- **Admin UI access**: The middleware (`proxy.ts`) redirects any authenticated user to their own section, so an Admin visiting `/manager/approvals` is bounced to `/admin`. `recordClientApprovalAction` / `recordClientChangesAction` authorize Admin at the action level, but there is no first-class Admin route today.
+- **Optional UX** (testing-agent note, non-blocking): The losing side of a concurrent race shows the generic "Server Components render" alert in the browser because Next.js production masks server-action error messages. Data integrity is intact — only UX cosmetics. Could be fixed by returning a typed `{ok:false, code, message}` from the actions and rendering inline.
+- **Design nits** (pre-existing Phase 4): after a successful client decision, buttons stay disabled for ~1s until revalidation lands. Errors surface via `window.alert()` rather than an inline panel state.
+- **projects.status vs completion_percent**: When completion_percent reaches 100 the `projects.status` column stays 'New'. Progression module only updates the percent — status promotion is out of Phase 6A scope; flagged for a later phase.
