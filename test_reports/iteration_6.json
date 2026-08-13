@@ -1,0 +1,27 @@
+{
+  "summary": "Phase 5 MEMBER portal E2E tested on https://pmt-repo-restore.preview.emergentagent.com with real Supabase data. Created PMT-TEST fixtures (client 49 / project 59 / deliverable 55 / stages 101 Content=complete + 102 Design=pending, department Design) via Supabase REST, then ran the full lifecycle through the UI: Manager assign -> Member Submit -> Manager approve -> Simulate Client Request Changes -> Member View Feedback + Resume Work -> Submit again -> Manager approve -> Simulate Client Approval -> Completed. All 10 requested scenarios PASSED, including DB verification that assignToStageAction writes BOTH assignee='harsh belsare' and assignee_user_id='3cc5f0d5-db34-4835-a722-94942a1dbc12' in the same update while status moved pending->in_progress. Security: unauth /member -> /login, Admin -> /admin, Manager -> /manager. Ownership isolation confirmed: prod stage 92 (assignee text = 'harsh belsare', assignee_user_id NULL) never appeared on the Member dashboard, proving there is no name-based fallback. KPIs tracked real data at every step (pending 0->1->0, tasks 1 active -> 1 completed, campaigns 1 active -> 1 completed) and dropped to all-zero + the 3 empty-state strings after fixture cleanup. All PMT-TEST fixtures deleted; a post-cleanup query confirms 0 deliverable_stages rows have a non-null assignee_user_id, i.e. the 27/35 production stages remain unassigned and untouched. No server errors in /var/log/supervisor/nextjs.err.log (only non-blocking Node 20 EBADENGINE warnings).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/manager/campaigns/[campaignId]", "issues": ["Stage number badge (.stage-num) renders half-clipped above the stage card border (visible as a stray '1'/'2' outside the card) — cosmetic only, pre-existing Phase 3 styling, not part of Phase 5 scope"]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/fixtures.py", "/app/test_reports/make_fixtures.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Manager assignment control (components/manager/MyStageCard.tsx) and the manager_review Approve/Send-back buttons in components/manager/ApprovalRow.tsx still have NO data-testid; automation had to select by option text / accessible name. Consider adding assign-select-<stageId>, approve-stage-btn-<stageId>, send-back-btn-<stageId>.",
+    "Member action errors are surfaced inline (my-task-error-<stageId>) but MyStageCard/ApprovalRow still use window.alert() for failures — inconsistent error UX (pre-existing).",
+    "resolveAuthUserIdByEmail paginates auth.admin.listUsers on every assign click; fine at current scale but will get slow — consider caching or storing auth_user_id on the managers row.",
+    "/app/memory/test_credentials.md is still missing; credentials had to be read from the review request."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (10/10 scenarios)"},
+  "seed_data_creation": "Temporary fixtures PMT-TEST Client (id 49), PMT-TEST Phase5 QA (project 59), PMT-TEST Deliverable (55), stages 101/102 — ALL DELETED after testing (verified: no PMT-TEST rows and no non-null assignee_user_id remain).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin product@finace.co / thefinpedia123; Manager james@gmail.com / deepesh123; Member belsareharsh814@gmail.com / harsh123 (all verified)",
+  "context_for_next_testing_agent": "Phase 5 Member portal verified end-to-end. To retest: create fixtures with /app/test_reports/make_fixtures.py create (writes fixture_ids.json), run the UI flow, then make_fixtures.py cleanup. Production stages are all unassigned, so /member is empty by default — fixtures are mandatory. Login needs ~3s hydration wait before typing; after each server action do page.reload() before asserting. Manager assign select has no data-testid (use page.locator('select').first + select_option('harsh belsare')); manager approve button = get_by_role('button', name='Approve -> Send to client').",
+  "rca_of_the_issue": "No defects found; nothing to root-cause."
+}

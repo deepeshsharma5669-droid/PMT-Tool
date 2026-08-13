@@ -1,36 +1,98 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import {
   requireStageAccessAsManagerOrAdmin,
   requireStageSubmitAccess,
   assertMemberInDepartment,
+  AuthError,
 } from '@/lib/auth'
 import { transitionStage, WorkflowError } from '@/lib/workflow'
 
 /**
- * Manager (or Admin) assigns a Member to a stage. Legal only from `pending`.
- * Reassigning a stage that's already in flight is out of scope for Phase 2 —
- * a reassignment while in_progress / manager_review would need its own action
- * with its own state-machine story. Use sendBackStageAction / reassignForRevisionAction
- * for the existing revision paths.
+ * Resolve a Member's Supabase Auth user_id (auth.users.id) from their
+ * managers.email. Uses the service-role admin API. Returns null if no
+ * matching auth user exists (e.g. Member row was created but the person
+ * never registered/confirmed).
+ *
+ * The auth Admin API's listUsers endpoint doesn't accept a server-side
+ * email filter, so we paginate and match in memory. The workspace's user
+ * base is tiny (single-digit users at Phase 5); this is acceptable and
+ * runs only during a Manager assign click.
+ */
+async function resolveAuthUserIdByEmail(email: string): Promise<string | null> {
+  const admin = createAdminClient()
+  const needle = email.toLowerCase()
+  const perPage = 200
+  let page = 1
+  // Hard cap to prevent runaway loops if listUsers ever misbehaves.
+  while (page <= 25) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
+    if (error) {
+      console.error('resolveAuthUserIdByEmail: listUsers failed', error)
+      return null
+    }
+    const users = data?.users ?? []
+    const match = users.find(u => (u.email ?? '').toLowerCase() === needle)
+    if (match) return match.id
+    if (users.length < perPage) return null
+    page += 1
+  }
+  return null
+}
+
+/**
+ * Manager (or Admin) assigns a Member to a stage.
+ *
+ * Phase 5 change: writes BOTH the legacy `assignee` display name AND the
+ * authoritative `assignee_user_id` UUID. Every Member-side query and
+ * every Member-side server action uses `assignee_user_id` for ownership;
+ * the text column is retained for backwards compatibility with existing
+ * Manager views (Workload table, MyStageCard header, etc.).
+ *
+ * Validation (Phase 5 §4):
+ *   1. authenticate Manager/Admin  (requireStageAccessAsManagerOrAdmin)
+ *   2. verify stage access          ( "   "   "     "  )
+ *   3. resolve stage department     ( "   "   "     "  )
+ *   4. resolve target Member        (assertMemberInDepartment: exists + role=Member + same department)
+ *   5. resolve auth.users.id        (resolveAuthUserIdByEmail)
+ *   6. write assignee_user_id + assignee (atomic UPDATE via transitionStage.extra)
+ *
+ * Never trusts a browser-supplied role, department, or user_id.
  */
 export async function assignToStageAction(stageId: number, assigneeName: string) {
   const { department } = await requireStageAccessAsManagerOrAdmin(stageId)
-  if (department) {
-    await assertMemberInDepartment(assigneeName, department)
-  }
+  if (!department) throw new AuthError('Stage has no department; contact an admin')
+
+  await assertMemberInDepartment(assigneeName, department)
 
   const supabase = await createClient()
+
+  // Look up the target Member's email from the managers row we just validated.
+  const { data: memberRow } = await supabase
+    .from('managers')
+    .select('email')
+    .eq('name', assigneeName)
+    .eq('role', 'Member')
+    .eq('department', department)
+    .maybeSingle()
+
+  if (!memberRow?.email) throw new AuthError('Assignee has no email on file; contact an admin')
+
+  const authUserId = await resolveAuthUserIdByEmail(memberRow.email)
+  if (!authUserId) throw new AuthError('Assignee has not registered a login yet')
+
   await transitionStage(supabase, {
     stageId,
     expectedFrom: 'pending',
     to: 'in_progress',
-    extra: { assignee: assigneeName },
+    extra: { assignee: assigneeName, assignee_user_id: authUserId },
   })
 
   revalidatePath('/manager', 'layout')
+  revalidatePath('/member', 'layout')
 }
 
 /**
