@@ -1,0 +1,25 @@
+{
+  "summary": "Fix verification (frontend only) for the 'Invalid Server Actions request' / Server Components render error after the preview host rename. Ran Playwright E2E on https://pmt-repo-restore.preview.emergentagent.com/login: all 3 role logins (Admin/Manager/Member) succeed and land on /admin, /manager, /member with fully rendered dashboards. Invalid-credential attempt stays on /login, shows 'Invalid login credentials' in red under the form, and the Sign in button resets to 'Sign in' (enabled). No 'Server Components render' screen appeared in any attempt. /var/log/supervisor/nextjs.err.log contains 0 occurrences of 'Invalid Server Actions request' and 0 of 'x-forwarded-host' (only non-blocking Supabase Node 20 EBADENGINE warnings).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/login", "issues": ["Inputs/button have no data-testid attributes; automation must rely on input[type=email]/input[type=password] selectors"]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Optional robustness: the login form is fully client-state driven, so a submit that happens before React hydration sends empty credentials and Supabase returns 'missing email or phone' (reproduced in the first automated run when typing immediately after DOM load). Consider using an uncontrolled form / reading values from the form element on submit, or disabling the submit button until hydrated.",
+    "/app/memory/test_credentials.md is missing — credentials had to be taken from the review request. Recommend creating it."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested", "frontend": "100% (4/4 login scenarios)"},
+  "seed_data_creation": "None",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin product@finace.co / thefinpedia123; Manager james@gmail.com / deepesh123; Member belsareharsh814@gmail.com / harsh123 (all verified working)",
+  "context_for_next_testing_agent": "Server Actions CSRF fix in next.config.ts allowedOrigins is verified working on host pmt-repo-restore.preview.emergentagent.com. When automating /login, wait ~3s after load (hydration) and use page.type before clicking button[type=submit]; otherwise Supabase returns 'missing email or phone'. Phase 5 not started; member portal is a placeholder page by design.",
+  "rca_of_the_issue": "Original error was Next.js 16 Server Action origin validation rejecting requests because the renamed preview host was absent from experimental.serverActions.allowedOrigins. Adding pmt-repo-restore.* hosts resolved it — confirmed by successful resolveRoleAndRedirect server-action calls and zero new 'Invalid Server Actions request' log lines."
+}
